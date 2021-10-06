@@ -1,3 +1,3 @@
 import { Nubli } from "./lib/nubli";
 
-export default new Nubli();
+export default Nubli;
