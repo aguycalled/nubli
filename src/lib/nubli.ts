@@ -100,7 +100,7 @@ export class Nubli extends Events.EventEmitter {
 
         this.debug("Peripheral matched filter: " + peripheral.id + " - " + peripheral.advertisement.localName);
 
-        let smartLock: SmartLock = new SmartLock(this, peripheral);
+        let smartLock: SmartLock = new SmartLock(this, peripheral, this.peripheralFilter.getType(peripheral));
 
         this._smartlocks.push(smartLock);
         this.emit("smartLockDiscovered", smartLock);

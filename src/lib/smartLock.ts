@@ -15,12 +15,24 @@ import { RequestConfigCommand } from "./smartLockCommands/RequestConfigCommand";
 import { RequestAdvancedConfigCommand } from "./smartLockCommands/RequestAdvancedConfigCommand";
 import { RequestAuthorizationsCommand } from "./smartLockCommands/RequestAuthorizationsCommand";
 
+export const NUKI_SERVICE_UUID = "a92ee200550111e4916c0800200c9a66";
+export const NUKI_PAIRING_SERVICE_UUID = "a92ee100550111e4916c0800200c9a66";
+export const NUKI_PAIRING_GENERAL_DATA_IO_CHARACTERISTIC_UUID = "a92ee101550111e4916c0800200c9a66";
+export const NUKI_SERVICE_GENERAL_DATA_IO_CHARACTERISTIC_UUID = "a92ee201550111e4916c0800200c9a66";
+export const NUKI_USER_SPECIFIC_DATA_IO_CHARACTERISTIC_UUID = "a92ee202550111e4916c0800200c9a66";
+
+export const NUKI_OPENER_SERVICE_UUID = "a92ae200550111e4916c0800200c9a66";
+export const NUKI_OPENER_PAIRING_SERVICE_UUID = "a92ae100550111e4916c0800200c9a66";
+export const NUKI_OPENER_PAIRING_GENERAL_DATA_IO_CHARACTERISTIC_UUID = "a92ae101550111e4916c0800200c9a66";
+export const NUKI_OPENER_SERVICE_GENERAL_DATA_IO_CHARACTERISTIC_UUID = "a92ae201550111e4916c0800200c9a66";
+export const NUKI_OPENER_USER_SPECIFIC_DATA_IO_CHARACTERISTIC_UUID = "a92ae202550111e4916c0800200c9a66";
+
 export class SmartLock extends Events.EventEmitter {
-    static readonly NUKI_SERVICE_UUID = "a92ee200550111e4916c0800200c9a66";
-    static readonly NUKI_PAIRING_SERVICE_UUID = "a92ee100550111e4916c0800200c9a66";
-    static readonly NUKI_PAIRING_GENERAL_DATA_IO_CHARACTERISTIC_UUID = "a92ee101550111e4916c0800200c9a66";
-    static readonly NUKI_SERVICE_GENERAL_DATA_IO_CHARACTERISTIC_UUID = "a92ee201550111e4916c0800200c9a66";
-    static readonly NUKI_USER_SPECIFIC_DATA_IO_CHARACTERISTIC_UUID = "a92ee202550111e4916c0800200c9a66";
+    private NUKI_SERVICE_UUID: string = "";
+    private NUKI_PAIRING_SERVICE_UUID: string = "";
+    private NUKI_PAIRING_GENERAL_DATA_IO_CHARACTERISTIC_UUID: string = "";
+    private NUKI_SERVICE_GENERAL_DATA_IO_CHARACTERISTIC_UUID: string = "";
+    private NUKI_USER_SPECIFIC_DATA_IO_CHARACTERISTIC_UUID: string = "";
 
     private nubli: Nubli;
     private device: import("@abandonware/noble").Peripheral;
@@ -35,7 +47,7 @@ export class SmartLock extends Events.EventEmitter {
     private lastManufacturerDataReceived: Date = new Date();
     private _stale: boolean = false;
 
-    constructor(nubli: Nubli, device: import("@abandonware/noble").Peripheral) {
+    constructor(nubli: Nubli, device: import("@abandonware/noble").Peripheral, type: string = "") {
         super();
 
         this.nubli = nubli;
@@ -44,6 +56,20 @@ export class SmartLock extends Events.EventEmitter {
         this.nukiPairingCharacteristic = null;
         this.nukiServiceCharacteristic = null;
         this.nukiUserCharacteristic = null;
+
+        if (type == "opener") {
+            this.NUKI_SERVICE_UUID = NUKI_OPENER_SERVICE_UUID;
+            this.NUKI_PAIRING_SERVICE_UUID = NUKI_OPENER_PAIRING_SERVICE_UUID;
+            this.NUKI_PAIRING_GENERAL_DATA_IO_CHARACTERISTIC_UUID = NUKI_OPENER_PAIRING_GENERAL_DATA_IO_CHARACTERISTIC_UUID;
+            this.NUKI_SERVICE_GENERAL_DATA_IO_CHARACTERISTIC_UUID = NUKI_OPENER_SERVICE_GENERAL_DATA_IO_CHARACTERISTIC_UUID;
+            this.NUKI_USER_SPECIFIC_DATA_IO_CHARACTERISTIC_UUID = NUKI_OPENER_USER_SPECIFIC_DATA_IO_CHARACTERISTIC_UUID;
+        } else {
+            this.NUKI_SERVICE_UUID = NUKI_SERVICE_UUID;
+            this.NUKI_PAIRING_SERVICE_UUID = NUKI_PAIRING_SERVICE_UUID;
+            this.NUKI_PAIRING_GENERAL_DATA_IO_CHARACTERISTIC_UUID = NUKI_PAIRING_GENERAL_DATA_IO_CHARACTERISTIC_UUID;
+            this.NUKI_SERVICE_GENERAL_DATA_IO_CHARACTERISTIC_UUID = NUKI_SERVICE_GENERAL_DATA_IO_CHARACTERISTIC_UUID;
+            this.NUKI_USER_SPECIFIC_DATA_IO_CHARACTERISTIC_UUID = NUKI_USER_SPECIFIC_DATA_IO_CHARACTERISTIC_UUID;
+        }
 
         this.device.on("disconnect", async () => {
             this.debug("disconnected");
@@ -80,7 +106,7 @@ export class SmartLock extends Events.EventEmitter {
             if (type == 2 && dataLength == 21) {
                 let serviceUuid: string = data.slice(4, 20).toString('hex');
 
-                if (serviceUuid == SmartLock.NUKI_SERVICE_UUID) {
+                if (serviceUuid == this.NUKI_SERVICE_UUID) {
                     let smartLockId: string = data.slice(20, 24).toString('hex').toUpperCase();
                     let rssi: number = data.readInt8(24);
 
@@ -228,7 +254,7 @@ export class SmartLock extends Events.EventEmitter {
     private async discoverServicesAndCharacteristics(): Promise<void> {
         return new Promise<void>((resolve, reject) => {
             this.device.discoverSomeServicesAndCharacteristics(
-                [SmartLock.NUKI_SERVICE_UUID, SmartLock.NUKI_PAIRING_SERVICE_UUID],
+                [this.NUKI_SERVICE_UUID, this.NUKI_PAIRING_SERVICE_UUID],
                 [],
                 (error: string, services: import("@abandonware/noble").Service[]) => {
                     if (error) {
@@ -244,13 +270,13 @@ export class SmartLock extends Events.EventEmitter {
         for (let service of this.device.services) {
             for (let characteristic of service.characteristics) {
                 switch (characteristic.uuid) {
-                    case SmartLock.NUKI_PAIRING_GENERAL_DATA_IO_CHARACTERISTIC_UUID:
+                    case this.NUKI_PAIRING_GENERAL_DATA_IO_CHARACTERISTIC_UUID:
                         this.nukiPairingCharacteristic = characteristic;
                         break;
-                    case SmartLock.NUKI_SERVICE_GENERAL_DATA_IO_CHARACTERISTIC_UUID:
+                    case this.NUKI_SERVICE_GENERAL_DATA_IO_CHARACTERISTIC_UUID:
                         this.nukiServiceCharacteristic = characteristic;
                         break;
-                    case SmartLock.NUKI_USER_SPECIFIC_DATA_IO_CHARACTERISTIC_UUID:
+                    case this.NUKI_USER_SPECIFIC_DATA_IO_CHARACTERISTIC_UUID:
                         this.nukiUserCharacteristic = characteristic;
                         break;
                 }
